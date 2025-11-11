@@ -130,6 +130,55 @@ export const handleOAuthCallback = async (c: Context<HonoEnv>) => {
 			accountId,
 			env,
 		});
+        
+        // Set up webhooks using the same logic as manual API
+        try {
+            const masterSecretKey = env === AppEnv.Sandbox 
+                ? process.env.STRIPE_SANDBOX_SECRET_KEY 
+                : process.env.STRIPE_LIVE_SECRET_KEY;
+            
+            if (!masterSecretKey) {
+                throw new Error(`Master Stripe ${env} secret key not found`);
+            }
+            
+            // Reuse existing handleStripeSecretKey function (same as manual API)
+            const { handleStripeSecretKey } = await import("@/internal/orgs/orgUtils/handleStripeSecretKey.js");
+            
+            const result = await handleStripeSecretKey({
+                orgId: org.id,
+                secretKey: masterSecretKey,
+                env,
+            });
+            
+            // Update organization with the result (same as manual API)
+            const currentConfig = org.stripe_config || {};
+            const configUpdates = {
+                ...currentConfig,
+                ...(env === AppEnv.Sandbox 
+                    ? { 
+                        test_api_key: result.test_api_key,
+                        test_webhook_secret: result.test_webhook_secret 
+                    }
+                    : { 
+                        live_api_key: result.live_api_key,
+                        live_webhook_secret: result.live_webhook_secret 
+                    }
+                )
+            };
+            
+            await OrgService.update({
+                db,
+                orgId: org.id,
+                updates: {
+                    stripe_config: configUpdates,
+                },
+            });
+            
+            console.log(`Successfully set up webhooks using existing handleStripeSecretKey for org ${org.id}`);
+        } catch (webhookError) {
+            console.error("Failed to set up webhooks:", webhookError);
+            // Continue with OAuth success even if webhook setup fails
+        }
 
 		console.log(`Successfully connected Stripe account for org ${org.id}`);
 

@@ -12,6 +12,7 @@ COPY bun.lock ./
 COPY shared/package*.json ./shared/
 COPY server/package*.json ./server/
 COPY vite/package*.json ./vite/
+COPY scripts/ ./scripts/
 
 RUN bun install
 
@@ -19,6 +20,7 @@ RUN bun install
 FROM base AS localtunnel
 WORKDIR /app
 COPY localtunnel-start.sh ./
+RUN chmod +x localtunnel-start.sh
 CMD ["sh", "localtunnel-start.sh"]
 
 #  Stage 2: /shared

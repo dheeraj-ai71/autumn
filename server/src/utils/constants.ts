@@ -22,7 +22,9 @@ export const dashboardOrigins = [
 	"https://app.useautumn.com",
 	"https://staging.useautumn.com",
 	process.env.CLIENT_URL!,
-];
+	// Add custom frontend port from .env
+	process.env.FRONTEND_PORT ? `http://localhost:${process.env.FRONTEND_PORT}` : "",
+].filter(Boolean);
 
 export const WEBHOOK_EVENTS = [
 	"checkout.session.completed",

@@ -15,52 +15,6 @@ services:
     ports:
       - "6379:6379"
     restart: unless-stopped
-    networks:
-      - autumn-network
-
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: autumn-postgres-dev
-    environment:
-      POSTGRES_DB: autumn
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Test123
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d autumn"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    ports:
-      - "${POSTGRES_PORT:-5433}:5432"  # Different port to avoid conflict
-    restart: unless-stopped
-    networks:
-      - autumn-network
-
-  # Database Migration Service (runs once)
-  migrate:
-    build:
-      dockerfile: docker/dev.dockerfile
-      context: .
-      target: shared
-    volumes:
-      - ./shared:/app/shared
-      - shared-dist:/app/shared/dist
-      - shared-node-modules:/app/shared/node_modules
-      - root-node-modules:/app/node_modules
-    environment:
-      NODE_ENV: development
-      DATABASE_URL: postgresql://postgres:Test123@postgres:5432/autumn
-    depends_on:
-      postgres:
-        condition: service_healthy
-    working_dir: /app/shared
-    command: ["sh", "-c", "bun db:generate && bun db:migrate"]
-    restart: "no"
-    networks:
-      - autumn-network
 
   # Shared package
   shared:
@@ -75,11 +29,7 @@ services:
       - root-node-modules:/app/node_modules
     environment:
       - NODE_ENV=development
-    depends_on:
-      - migrate
     restart: unless-stopped
-    networks:
-      - autumn-network
 
   # Vite frontend
   vite:
@@ -88,7 +38,7 @@ services:
       context: .
       target: vite
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "3000:3000"
     volumes:
       - ./vite:/app/vite
       - shared-dist:/app/shared/dist
@@ -98,12 +48,9 @@ services:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
-      - VITE_BACKEND_URL=http://localhost:${BACKEND_PORT:-8080}
     depends_on:
       - shared
     restart: unless-stopped
-    networks:
-      - autumn-network
 
   # Main Express server
   server:
@@ -112,7 +59,7 @@ services:
       context: .
       target: server
     ports:
-      - "${BACKEND_PORT:-8080}:8080"
+      - "8080:8080"
     volumes:
       - ./server:/app/server
       - shared-dist:/app/shared/dist
@@ -121,16 +68,11 @@ services:
     environment:
       - NODE_ENV=development
       - REDIS_URL=redis://valkey:6379
-      - DATABASE_URL=postgresql://postgres:Test123@postgres:5432/autumn
-      - FRONTEND_PORT=${FRONTEND_PORT:-3000}
-      - BACKEND_PORT=${BACKEND_PORT:-8080}
+      - DATABASE_URL=postgresql://dheeraj:Test123@host.docker.internal:5432/autumnalpha
     depends_on:
       - shared
       - valkey
-      - migrate
     restart: unless-stopped
-    networks:
-      - autumn-network
 
   # BullMQ Workers
   workers:
@@ -139,6 +81,7 @@ services:
       context: .
       target: workers
     volumes:
+      # Mount server source for hot reload (workers use server code)
       - ./server:/app/server
       - shared-dist:/app/shared/dist
       - root-node-modules:/app/node_modules
@@ -146,14 +89,12 @@ services:
     environment:
       - NODE_ENV=development
       - REDIS_URL=redis://valkey:6379
-      - DATABASE_URL=postgresql://postgres:Test123@postgres:5432/autumn
+      - DATABASE_URL=postgresql://dheeraj:Test123@host.docker.internal:5432/autumnalpha
     depends_on:
       - shared
       - valkey
-      - migrate
     restart: unless-stopped
-    networks:
-      - autumn-network
+
 
   # Run localtunnel
   localtunnel:
@@ -167,18 +108,15 @@ services:
     depends_on:
       - server
     restart: unless-stopped
-    networks:
-      - autumn-network
+
 
 volumes:
+  # Shared package dist output
   shared-dist:
   valkey-data:
-  postgres-data:
+
+  # Node modules volumes to avoid host/container conflicts
   shared-node-modules:
   server-node-modules:
   vite-node-modules:
   root-node-modules:
-
-networks:
-  autumn-network:
-    driver: bridge

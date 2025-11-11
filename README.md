@@ -24,6 +24,32 @@ All this without having to handle webhooks, upgrades/downgrades, cancellations o
 
 **Self Hosted**: If you'd like to self-host Autumn:
 
+### Option 1: Docker (Recommended - Fully Containerized)
+
+1. Make sure you have `bun` and `docker` installed
+2. Install the project dependencies
+```bash
+bun install
+```
+3. Run our set up script:
+```bash
+bun setup
+```
+4. Start Autumn with Docker (includes PostgreSQL + automatic migrations):
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+That's it! Everything runs automatically:
+- ✅ PostgreSQL database (containerized)
+- ✅ Database migrations (automatic)
+- ✅ Frontend on `http://localhost:3000`
+- ✅ Backend on `http://localhost:8080`
+
+### Option 2: Local Development (Manual Database Setup)
+
+If you prefer to use your own PostgreSQL instance:
+
 1. Make sure you have `bun` installed
 2. Install the project dependencies
 ```bash
@@ -33,29 +59,44 @@ bun install
 ```bash
 bun setup
 ```
-
 4. Generate the relevant tables in your postgres DB
 ```bash
 bun db:generate && bun db:migrate
 ```
-
 5. Run Autumn:
-
-For Windows
 ```bash
+# For Windows
 docker compose -f docker-compose.dev.yml up
-```
 
-For mac/linux:
- ```bash
+# For mac/linux  
 docker compose -f docker-compose.unix.yml up
 ```
 
-That's it! You should be able to see the Autumn dashboard on `http://localhost:3000`. 
+### Custom Ports (Optional)
+
+To use different ports, add these to your `server/.env`:
+```env
+FRONTEND_PORT=3001
+BACKEND_PORT=8081
+POSTGRES_PORT=5434
+```
+
+Then start with:
+```bash
+./docker-start.sh
+```
+
+> 📖 For detailed port configuration options, see [PORT_CONFIG.md](PORT_CONFIG.md)
+
+### Access Your Application
+
+- **Frontend**: `http://localhost:3000` (or your custom `FRONTEND_PORT`)
+- **Backend**: `http://localhost:8080` (or your custom `BACKEND_PORT`)
+- **Database**: `localhost:5433` (or your custom `POSTGRES_PORT`)
 
 > ⚠️ To log in, enter an email at the sign in page, and an OTP should appear in your console / terminal. Normally, we use Resend to email an OTP or Google OAuth -- these can be set up by providing your credentials in `server/.env`
 
-> ℹ️ Our set up script initializes the required env vars and (optionally) a Supabase instance. If you'd like to use your own Postgres instance, you can do so -- just paste the connection string in the `DATABASE_URL` env variable at `server/.env`
+> ℹ️ Our set up script initializes the required env vars and (optionally) a Supabase instance. With Docker (Option 1), you get a containerized PostgreSQL automatically. For manual setup (Option 2), you can use your own Postgres instance by setting the `DATABASE_URL` in `server/.env`
 
 ## Troubleshooting
 

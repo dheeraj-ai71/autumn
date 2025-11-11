@@ -31,7 +31,11 @@ const ALLOWED_ORIGINS = [
 	"https://staging.useautumn.com",
 	"https://api.staging.useautumn.com",
 	"https://localhost:8080",
-];
+	process.env.CLIENT_URL || "",
+	// Add custom ports from .env
+	process.env.FRONTEND_PORT ? `http://localhost:${process.env.FRONTEND_PORT}` : "",
+	process.env.BACKEND_PORT ? `http://localhost:${process.env.BACKEND_PORT}` : "",
+].filter(Boolean);
 
 const ALLOWED_HEADERS = [
 	"app_env",

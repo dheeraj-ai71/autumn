@@ -3,7 +3,7 @@ import chalk from "chalk";
 import { StatusCodes } from "http-status-codes";
 import Stripe from "stripe";
 import { ZodError, type ZodIssue } from "zod/v4";
-
+import { RecaseError as SharedRecaseError } from "@autumn/shared";
 export const isPaymentDeclined = (error: any) => {
 	return (
 		error instanceof RecaseError && error.code === ErrCode.StripeCardDeclined
@@ -104,7 +104,7 @@ export const handleRequestError = ({
 }) => {
 	try {
 		const logger = req.logger;
-		if (error instanceof RecaseError) {
+		if (error instanceof RecaseError || error instanceof SharedRecaseError) {
 			logger.warn(
 				`RECASE WARNING (${req.org?.slug || "unknown"}): ${error.message} [${error.code}]`,
 				{
