@@ -3,9 +3,13 @@ import Stripe from "stripe";
 
 const main = async () => {
 	const stripe = new Stripe(process.env.STRIPE_SANDBOX_SECRET_KEY || "");
-
+    const stripe_webhook_url = process.env.STRIPE_WEBHOOK_URL || "";
+    if (!stripe_webhook_url) {
+        throw new Error("STRIPE_WEBHOOK_URL env variable is not set");
+    }
+    console.log("Using webhook URL:", `https://${stripe_webhook_url}/webhooks/connect/sandbox`);
 	const result = await stripe.webhookEndpoints.create({
-		url: "https://express.dev.useautumn.com/webhooks/connect/sandbox",
+		url: `${stripe_webhook_url}/webhooks/connect/sandbox`,
 		enabled_events: [
 			"checkout.session.completed",
 			"customer.subscription.created",
