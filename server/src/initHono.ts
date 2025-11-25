@@ -1,3 +1,4 @@
+import { apiReference } from "@scalar/hono-api-reference";
 import { getRequestListener } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -22,6 +23,7 @@ import { platformBetaRouter } from "./internal/platform/platformBeta/platformBet
 import { internalProductRouter } from "./internal/products/internalProductRouter.js";
 import { honoProductRouter } from "./internal/products/productRouter.js";
 import { auth } from "./utils/auth.js";
+import { getOpenApiSpec } from "./utils/openApiUtils.js";
 
 const ALLOWED_ORIGINS = [
 	"http://localhost:3000",
@@ -86,6 +88,21 @@ export const createHonoApp = () => {
 
 	// Webhook routes
 	app.post("/webhooks/connect/:env", handleConnectWebhook);
+
+	// OpenAPI spec endpoint
+	app.get("/openapi.json", (c) => {
+		return c.json(getOpenApiSpec());
+	});
+
+	// Scalar API Reference / Playground - serves at /reference
+	app.get(
+		"/reference",
+		apiReference({
+			spec: {
+				url: "/openapi.json",
+			},
+		} as any),
+	);
 
 	// API Middleware
 	app.use("/v1/*", secretKeyMiddleware);
